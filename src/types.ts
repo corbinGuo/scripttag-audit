@@ -24,6 +24,8 @@ export interface EnrichedTag extends ScriptTag {
   host: string | null;
   vendor: string | null;
   vendorConfidence: VendorConfidence | null;
+  /** Product category from the vendor mapping (drives the migration path). */
+  vendorCategory: string | null;
   status: TagStatus;
   advice: MigrationAdvice;
 }

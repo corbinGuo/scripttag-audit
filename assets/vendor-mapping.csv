@@ -27,3 +27,61 @@ unpkg.com,Unknown,Unknown CDN,low,public CDN
 analytics.tiktok.com,TikTok,Pixel/Tracking,high,
 snap.licdn.com,LinkedIn,Pixel/Tracking,high,
 static.hotjar.com,Hotjar,Session Recording,medium,coexists with cdn.hotjar.com
+script.hotjar.com,Hotjar,Session Recording,high,current loader host
+ct.pinterest.com,Pinterest,Pixel/Tracking,high,
+static.criteo.net,Criteo,Pixel/Tracking,high,
+bat.bing.com,Microsoft Bing,Pixel/Tracking,high,UET tag
+www.googleadservices.com,Google Ads,Pixel/Tracking,high,conversion/remarketing snippet
+googleads.g.doubleclick.net,Google Ads,Pixel/Tracking,medium,usually loaded via GTM
+mc.yandex.ru,Yandex Metrica,Analytics,high,
+hm.baidu.com,Baidu Analytics,Analytics,high,
+cdn.taboola.com,Taboola,Pixel/Tracking,high,
+a.klaviyo.com,Klaviyo,Email/Popup,medium,newer endpoint next to static.klaviyo.com
+cdn.mxpnl.com,Mixpanel,Analytics,high,
+cdn.heapanalytics.com,Heap,Analytics,high,
+cdn.segment.com,Segment,Analytics,high,
+cdn.amplitude.com,Amplitude,Analytics,high,
+browser.sentry-cdn.com,Sentry,Error Monitoring,high,
+cdn.ravenjs.com,Sentry,Error Monitoring,medium,legacy Raven.js
+www.googleoptimize.com,Google Optimize (discontinued),A/B Testing,high,service shut down 2023 — tag is dead code
+cdn.optimizely.com,Optimizely,A/B Testing,medium,
+script.crazyegg.com,Crazy Egg,Session Recording,high,
+cdn.mouseflow.com,Mouseflow,Session Recording,high,
+assets.luckyorange.com,Lucky Orange,Session Recording,medium,ws/rt companion hosts exist
+cdn.inspectlet.com,Inspectlet,Session Recording,medium,
+rec.smartlook.com,Smartlook,Session Recording,medium,
+fs.fullstory.com,FullStory,Session Recording,medium,
+fullstory.com,FullStory,Session Recording,medium,current sdk host
+code.tidio.co,Tidio,Chat,high,
+cdn.livechatinc.com,LiveChat,Chat,high,
+v2.zopim.com,Zendesk Chat (legacy),Chat,high,Zopim widget
+widget.chatra.io,Chatra,Chat,medium,
+wchat.freshchat.com,Freshchat,Chat,medium,
+widget.gorgias.chat,Gorgias,Chat,medium,
+cdn.reamaze.com,Re:amaze,Chat/Support,medium,
+cdn.attn.tv,Attentive,SMS Marketing,high,
+static.postscript.io,PostScript,SMS Marketing,medium,
+cdn.smsbump.com,Yotpo SMS (SMSBump),SMS Marketing,medium,
+cdn.getdrip.com,Drip,Email/Popup,medium,
+static.mailerlite.com,MailerLite,Email/Popup,medium,
+chimpstatic.com,Mailchimp,Email/Popup,medium,mailchimp connected-js host
+omappapi.com,OptinMonster,Popup/Marketing,medium,loader api next to cdn.optinmonster.com
+cdn.wisepops.com,WisePops,Popup/Marketing,medium,
+cdn.onesignal.com,OneSignal,Web Push,high,
+trackcmp.net,ActiveCampaign,Email/Popup,low,site tracking endpoint
+widget.trustpilot.com,Trustpilot,Reviews,high,
+cdn.okendo.io,Okendo,Reviews,medium,
+cdn-stamped-io.azureedge.net,Stamped.io,Reviews,medium,
+cdn.smile.io,Smile.io,Loyalty/Referral,medium,
+cdn.referralcandy.com,ReferralCandy,Loyalty/Referral,medium,
+js.klevu.com,Klevu,Search,medium,
+searchserverapi.com,Boost Commerce,Search,medium,boost AI search api host
+cdn.getshogun.com,Shogun,Page Builder,medium,
+cdn.pagefly.org,PageFly,Page Builder,medium,
+fast.wistia.com,Wistia,Video,medium,
+consent.cookiebot.com,Cookiebot,Consent,medium,
+cdn-cookieyes.com,CookieYes,Consent,medium,
+cdn.iubenda.com,iubenda,Consent,medium,
+app.termly.io,Termly,Consent,medium,
+cdn.branch.io,Branch,Analytics,medium,attribution/analytics
+cdn.rebuyengine.com,Rebuy,Upsell/CRO,medium,renders visible upsell widgets

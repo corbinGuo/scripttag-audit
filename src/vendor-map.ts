@@ -58,3 +58,8 @@ export function lookupVendor(host: string | null): VendorEntry | null {
   const map = loadMap();
   return map.get(host) ?? map.get(host.replace(/^www\./, '')) ?? null;
 }
+
+/** Number of mapped hosts — used by the smoke test to catch a broken CSV. */
+export function vendorCount(): number {
+  return loadMap().size;
+}

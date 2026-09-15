@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { registerScanCommand } from './commands/scan.js';
+import { registerLoginCommand } from './commands/login.js';
+import { registerLogoutCommand } from './commands/logout.js';
+import { registerAdviseCommand } from './commands/advise.js';
 
 const program = new Command();
 
@@ -10,9 +13,12 @@ program
     'Audit Shopify stores for script tags before the March 1, 2027 deprecation.\n' +
       'Source: https://shopify.dev/changelog/online-store-script-tags-deprecation'
   )
-  .version('0.1.0');
+  .version('0.2.0');
 
 registerScanCommand(program);
+registerLoginCommand(program);
+registerLogoutCommand(program);
+registerAdviseCommand(program);
 
 program.parseAsync(process.argv).catch((err: unknown) => {
   if (err instanceof Error) {

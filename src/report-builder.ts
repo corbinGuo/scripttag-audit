@@ -17,6 +17,7 @@ export function enrich(tag: ScriptTag): EnrichedTag {
     host,
     vendor: vendorEntry?.vendor ?? null,
     vendorConfidence: vendorEntry?.confidence ?? null,
+    vendorCategory: vendorEntry?.category ?? null,
     status,
     advice: buildAdvice(status, vendorEntry?.category ?? null),
   };

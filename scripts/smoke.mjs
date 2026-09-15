@@ -1,7 +1,14 @@
-// Offline smoke test: exercises classification, vendor mapping, and all
-// three renderers without touching the network. Run: node scripts/smoke.mjs
+// Offline smoke test: exercises classification, vendor mapping, renderers,
+// the advise pipeline, and OAuth HMAC verification — without touching the
+// network. Run: node scripts/smoke.mjs
 import { buildReport } from '../dist/report-builder.js';
 import { renderTable, renderJson, renderCsv } from '../dist/report.js';
+import { vendorCount, lookupVendor } from '../dist/vendor-map.js';
+import { verifyCallbackHmac } from '../dist/oauth.js';
+import { buildAdviceDoc, renderAdviceText, renderAdviceMarkdown, renderVendorEmails } from '../dist/advise-core.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { createHmac } from 'node:crypto';
 
 const tags = [
   {
@@ -39,6 +46,13 @@ const tags = [
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
   },
+  {
+    id: '6',
+    src: 'https://code.tidio.co/abc.js',
+    displayScope: 'ONLINE_STORE',
+    createdAt: '2025-02-01T00:00:00Z',
+    updatedAt: '2025-02-01T00:00:00Z',
+  },
 ];
 
 const report = buildReport('demo-store.myshopify.com', '2026-07', tags);
@@ -56,7 +70,7 @@ console.log(
 );
 
 const failures = [];
-if (json.summary.affected !== 4) failures.push('affected count expected 4 (tags 1,2,4,5)');
+if (json.summary.affected !== 5) failures.push('affected count expected 5 (tags 1,2,4,5,6)');
 if (json.summary.dead !== 1) failures.push('dead count expected 1');
 if (json.summary.topVendors[0]?.vendor !== 'Hotjar') failures.push('top vendor expected Hotjar');
 const malformed = json.tags.find((t) => t.id === '5');
@@ -70,6 +84,59 @@ if (json.tags.find((t) => t.id === '4').advice.replacement !== 'app-embed') {
 if (json.tags.find((t) => t.id === '1').advice.replacement !== 'web-pixel') {
   failures.push('Hotjar (Session Recording) should map to web-pixel');
 }
+
+// --- vendor mapping ---
+const count = vendorCount();
+console.log('--- vendor mapping:', count, 'entries ---');
+if (count < 50) failures.push(`vendor mapping expected >= 50 entries, got ${count}`);
+if (lookupVendor('code.tidio.co')?.vendor !== 'Tidio') failures.push('code.tidio.co should map to Tidio');
+if (lookupVendor('www.googletagmanager.com')?.vendor !== 'Google') failures.push('gtm host should map to Google');
+if (lookupVendor(null) !== null) failures.push('null host lookup must be null');
+
+// --- OAuth callback HMAC ---
+const secret = 'smoke-test-secret';
+const params = { code: 'abc', shop: 'demo-store.myshopify.com', state: 'xyz', timestamp: '1757928000' };
+params.hmac = createHmac('sha256', secret)
+  .update(
+    Object.keys(params)
+      .sort()
+      .map((k) => `${k}=${params[k]}`)
+      .join('&')
+  )
+  .digest('hex');
+if (!verifyCallbackHmac(params, secret)) failures.push('valid oauth hmac rejected');
+if (verifyCallbackHmac({ ...params, hmac: '0'.repeat(64) }, secret)) failures.push('tampered oauth hmac accepted');
+if (verifyCallbackHmac({ code: 'abc' }, secret)) failures.push('missing hmac must fail');
+
+// --- advise pipeline (uses the real dev-store fixture) ---
+const fixturePath = fileURLToPath(new URL('../fixtures/dev-store-snapshot.json', import.meta.url));
+const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
+const adviceDoc = buildAdviceDoc(fixture);
+const adviceText = renderAdviceText(adviceDoc);
+const adviceMd = renderAdviceMarkdown(adviceDoc);
+const emails = renderVendorEmails(adviceDoc, fixture);
+console.log('--- advise ---');
+console.log(adviceText.split('\n').slice(0, 4).join('\n'));
+
+if (adviceDoc.store !== fixture.store) failures.push('advice doc store mismatch');
+if (adviceDoc.counts.total !== fixture.summary.total) failures.push('advice counts.total mismatch');
+if (!adviceText.includes('Migration plan')) failures.push('advice text missing header');
+if (!adviceMd.includes('# Migration plan')) failures.push('advice markdown missing header');
+if (emails && !emails.includes('Subject:')) failures.push('emails missing Subject line');
+console.log('email previews:', emails.split('Subject:').length - 1);
+
+// --- profile storage round-trip (sandboxed config dir) ---
+process.env.SCRIPTTAG_AUDIT_CONFIG_DIR = fileURLToPath(new URL('../.smoke-config', import.meta.url));
+const { rmSync } = await import('node:fs');
+rmSync(process.env.SCRIPTTAG_AUDIT_CONFIG_DIR, { recursive: true, force: true });
+const { saveProfile, getProfile, deleteProfile, listShops } = await import('../dist/config.js');
+saveProfile({ shop: 'smoke-store.myshopify.com', clientId: 'cid', clientSecret: 'sec', accessToken: 'tok' });
+const roundTripped = getProfile('smoke-store.myshopify.com');
+if (roundTripped?.clientSecret !== 'sec') failures.push('profile round-trip failed');
+if (listShops()[0] !== 'smoke-store.myshopify.com') failures.push('listShops failed');
+if (!deleteProfile('smoke-store.myshopify.com')) failures.push('deleteProfile failed');
+if (getProfile('smoke-store.myshopify.com') !== null) failures.push('profile not deleted');
+rmSync(process.env.SCRIPTTAG_AUDIT_CONFIG_DIR, { recursive: true, force: true });
 
 if (failures.length) {
   console.error('SMOKE FAIL:', failures.join('; '));

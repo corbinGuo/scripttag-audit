@@ -29,6 +29,8 @@ const WEB_PIXEL_CATEGORIES = new Set([
   'Analytics',
   'Pixel/Tracking',
   'Session Recording',
+  'A/B Testing',
+  'Error Monitoring',
 ]);
 
 /**

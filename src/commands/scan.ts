@@ -3,34 +3,27 @@ import { fetchAllScriptTags, ShopifyError } from '../shopify-client.js';
 import { resolveAccessToken } from '../auth.js';
 import { buildReport } from '../report-builder.js';
 import { renderTable, renderJson, renderCsv } from '../report.js';
-
-function normalizeShopDomain(raw: string): string {
-  let d = raw.trim().toLowerCase();
-  d = d.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-  if (!d.includes('.')) {
-    d = `${d}.myshopify.com`;
-  }
-  if (!/^[a-z0-9][a-z0-9-]*\.[a-z0-9.-]+$/.test(d)) {
-    throw new ShopifyError(`"${raw}" does not look like a shop domain.`);
-  }
-  return d;
-}
+import { listShops } from '../config.js';
+import { normalizeShopDomain } from '../util.js';
 
 const TOKEN_HELP = `
 How to get credentials (2026 Dev Dashboard flow):
+  Recommended: run \`scripttag-audit login\` once (OAuth, no flag copying).
+  Manual alternative:
   1. dev.shopify.com -> Apps -> Create app
   2. Create a version with Admin API scope: read_script_tags
   3. Release the version, then Install -> your store
   4. Settings -> copy Client ID and Client secret
   5. Run with --client-id + --client-secret (a fresh ~24h token is minted per run)
   Legacy --token (shpat_...) from pre-2026 custom apps still works.
+  SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET env vars are also honored.
 `.trim();
 
 export function registerScanCommand(program: Command): void {
   program
     .command('scan')
     .description('Audit a Shopify store for script tags affected by the 2027 deprecation')
-    .requiredOption('--store <domain>', 'Shop domain, e.g. my-store.myshopify.com')
+    .option('--store <domain>', 'Shop domain, e.g. my-store.myshopify.com (optional after `login` when exactly one store is saved)')
     .option('--token <token>', 'Legacy static Admin API token (shpat_..., pre-2026 custom apps)')
     .option('--client-id <id>', 'Dev Dashboard app Client ID (recommended)')
     .option('--client-secret <secret>', 'Dev Dashboard app Client secret (recommended)')
@@ -39,7 +32,7 @@ export function registerScanCommand(program: Command): void {
     .addHelpText('after', `\n${TOKEN_HELP}`)
     .action(
       async (opts: {
-        store: string;
+        store?: string;
         token?: string;
         clientId?: string;
         clientSecret?: string;
@@ -48,6 +41,24 @@ export function registerScanCommand(program: Command): void {
       }) => {
         if (!['table', 'json', 'csv'].includes(opts.format)) {
           throw new ShopifyError(`Unknown format "${opts.format}". Use table | json | csv.`);
+        }
+
+        if (!opts.store) {
+          const shops = listShops();
+          if (shops.length === 1) {
+            console.error(`note: --store omitted, using the saved store ${shops[0]}.`);
+            opts.store = shops[0];
+          } else if (shops.length === 0) {
+            throw new ShopifyError(
+              'Missing --store.',
+              'Pass --store <domain>, or run `scripttag-audit login` once and scans for that store need no flags.'
+            );
+          } else {
+            throw new ShopifyError(
+              `Multiple saved stores: ${shops.join(', ')}.`,
+              'Pass --store to choose one.'
+            );
+          }
         }
 
         const store = normalizeShopDomain(opts.store);
@@ -59,7 +70,7 @@ export function registerScanCommand(program: Command): void {
 
         const token = await resolveAccessToken(store, opts);
         const tags = await fetchAllScriptTags(store, token, opts.apiVersion);
-      const report = buildReport(store, opts.apiVersion, tags);
+        const report = buildReport(store, opts.apiVersion, tags);
 
       if (opts.format === 'json') {
         console.log(renderJson(report));

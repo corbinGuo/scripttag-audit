@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+// Prefer IPv4 DNS results: many users (notably on mainland-China networks)
+// have broken IPv6 routes, which otherwise makes fetch hang until timeout
+// even though the IPv4 path is healthy.
+import { setDefaultResultOrder } from 'node:dns';
+setDefaultResultOrder('ipv4first');
+
 import { Command } from 'commander';
 import { registerScanCommand } from './commands/scan.js';
 import { registerLoginCommand } from './commands/login.js';

@@ -1,0 +1,33 @@
+name: Publish to npm
+
+# Releases: bump package.json version, tag, push.
+#   git tag vX.Y.Z && git push origin vX.Y.Z
+# Auth is GitHub OIDC (npm "trusted publishing") — no NPM_TOKEN secret.
+# Trusted publisher on npmjs.com points at corbinGuo/scripttag-audit +
+# workflow filename `publish.yml`.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# OIDC token minting is what authenticates the publish.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Deliberately no registry-url / NODE_AUTH_TOKEN here: those shadow
+      # the OIDC flow and cause ENEEDAUTH.
+      - run: npm ci
+      # --provenance: trusted publishing handles AUTH via OIDC; the flag is
+      # what generates the signed provenance attestation (npm view ... dist.attestations)
+      - run: npm publish --provenance

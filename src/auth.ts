@@ -24,8 +24,15 @@ export async function mintToken(
       }),
     });
   } catch (err) {
+    const cause =
+      err instanceof Error && err.cause instanceof Error
+        ? ` (${err.cause.message})`
+        : '';
     throw new ShopifyError(
-      `Token request to ${shop} failed: ${err instanceof Error ? err.message : String(err)}`
+      `Token request to ${shop} failed: ${
+        err instanceof Error ? err.message : String(err)
+      }${cause}`,
+      'If the cause looks like DNS/timeout/connection reset, it is usually a transient network problem — retry once before debugging credentials.'
     );
   }
   if (!res.ok) {

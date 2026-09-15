@@ -53,8 +53,14 @@ async function gql(
       body: JSON.stringify({ query, variables }),
     });
   } catch (err) {
+    const cause =
+      err instanceof Error && err.cause instanceof Error
+        ? ` (${err.cause.message})`
+        : '';
     throw new ShopifyError(
-      `Network request to ${shop} failed: ${err instanceof Error ? err.message : String(err)}`
+      `Network request to ${shop} failed: ${
+        err instanceof Error ? err.message : String(err)
+      }${cause}`
     );
   }
 

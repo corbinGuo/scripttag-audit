@@ -1,0 +1,29 @@
+src,vendor,product_category,confidence,notes
+connect.facebook.net,Meta,Pixel/Tracking,high,common ad tracking
+static.ads-twitter.com,X (Twitter),Pixel/Tracking,high,
+google-analytics.com,Google,Analytics,high,legacy GA
+www.googletagmanager.com,Google,GTM,high,usually theme-builtin rather than script tag
+static.klaviyo.com,Klaviyo,Email/Popup,high,
+cdn.jsdelivr.net,Unknown,Unknown CDN,low,needs full path to attribute
+cdn.hotjar.com,Hotjar,Session Recording,high,
+static.clarity.ms,Microsoft Clarity,Session Recording,high,
+widget.intercom.io,Intercom,Chat,high,
+static.zdassets.com,Zendesk,Chat/Support,high,
+client.crisp.chat,Crisp,Chat,high,
+embed.tawk.to,Tawk.to,Chat,high,
+cdn.yotpo.com,Yotpo,Reviews,high,
+cdn.loox.io,Loox,Reviews,high,
+cdn.judge.me,Judge.me,Reviews,medium,judge.me also ships app-embed form
+cdn.pushowl.com,PushOwl,Web Push,high,
+cdn.pushcrew.com,iZooto,Web Push,high,
+sumo.com,Sumo,Popup/Marketing,high,
+justuno.com,Justuno,Popup/Marketing,medium,
+cdn.optinmonster.com,OptinMonster,Popup/Marketing,medium,
+api.privY.io,Privy,Popup/Marketing,medium,
+staticxx.facebook.com,Meta,Social Plugin,medium,
+cdn.shopify.com,Shopify/Theme Asset,Theme Asset,low,shopify CDN hosts many assets; needs path
+cdnjs.cloudflare.com,Unknown,Unknown CDN,low,public CDN
+unpkg.com,Unknown,Unknown CDN,low,public CDN
+analytics.tiktok.com,TikTok,Pixel/Tracking,high,
+snap.licdn.com,LinkedIn,Pixel/Tracking,high,
+static.hotjar.com,Hotjar,Session Recording,medium,coexists with cdn.hotjar.com

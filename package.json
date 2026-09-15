@@ -1,0 +1,39 @@
+{
+  "name": "scripttag-audit",
+  "version": "0.1.0",
+  "description": "Audit Shopify stores for script tags before the March 1, 2027 deprecation. CLI + CI gate.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "bin": {
+    "scripttag-audit": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "assets"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "shopify",
+    "script-tag",
+    "deprecation",
+    "audit",
+    "cli",
+    "web-pixel",
+    "app-embed"
+  ],
+  "dependencies": {
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

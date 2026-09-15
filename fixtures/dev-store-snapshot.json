@@ -1,0 +1,55 @@
+{
+  "store": "tagguard-dev.myshopify.com",
+  "apiVersion": "2026-07",
+  "scannedAt": "2026-09-14T17:26:11.608Z",
+  "tags": [
+    {
+      "id": "gid://shopify/ScriptTag/235043684388",
+      "src": "https://cdn.hotjar.com/hotjar-example.js",
+      "displayScope": "ONLINE_STORE",
+      "createdAt": "2026-09-14T17:20:46Z",
+      "updatedAt": "2026-09-14T17:20:46Z",
+      "host": "cdn.hotjar.com",
+      "vendor": "Hotjar",
+      "vendorConfidence": "high",
+      "status": "affected-storefront",
+      "advice": {
+        "replacement": "web-pixel",
+        "summary": "Analytics-style script. Migrate to a web pixel extension (no merchant action required). New installs break after 2026-10-01; all storefront tags stop running 2027-03-01.",
+        "docUrl": "https://shopify.dev/docs/apps/build/online-store"
+      }
+    },
+    {
+      "id": "gid://shopify/ScriptTag/235043717156",
+      "src": "https://widget.intercom.io/intercom-example.js",
+      "displayScope": "ONLINE_STORE",
+      "createdAt": "2026-09-14T17:20:46Z",
+      "updatedAt": "2026-09-14T17:20:46Z",
+      "host": "widget.intercom.io",
+      "vendor": "Intercom",
+      "vendorConfidence": "high",
+      "status": "affected-storefront",
+      "advice": {
+        "replacement": "app-embed",
+        "summary": "Visible-feature script. Migrate to an app embed block inside a theme app extension (merchants must activate it in the theme editor, per theme). New installs break after 2026-10-01; all storefront tags stop running 2027-03-01.",
+        "docUrl": "https://shopify.dev/docs/apps/build/online-store"
+      }
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "affected": 2,
+    "dead": 0,
+    "unknown": 0,
+    "topVendors": [
+      {
+        "vendor": "Hotjar",
+        "count": 1
+      },
+      {
+        "vendor": "Intercom",
+        "count": 1
+      }
+    ]
+  }
+}

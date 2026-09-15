@@ -15,6 +15,16 @@ affected tags remain — so it doubles as a **CI gate** for your migration.
 
 ## Quick start
 
+One-time OAuth login (no flag copying afterwards):
+
+```bash
+npx scripttag-audit login
+# answers the prompts once, opens the browser for consent, done
+npx scripttag-audit scan --store my-store.myshopify.com
+```
+
+Or fully manual in one shot:
+
 ```bash
 npx scripttag-audit scan \
   --store my-store.myshopify.com \
@@ -26,14 +36,27 @@ npx scripttag-audit scan \
 
 ### Getting credentials (2026 Dev Dashboard flow)
 
-Since Jan 2026, Shopify apps no longer have static `shpat_` tokens. Use the
-client-credentials flow instead — the CLI mints a fresh ~24h token per run:
+Since Jan 2026, Shopify apps no longer have static `shpat_` tokens. The CLI
+mints a fresh ~24h token per run via the client-credentials grant:
 
 1. [dev.shopify.com](https://dev.shopify.com) → **Apps** → **Create app**
 2. Create a version with the Admin API scope **`read_script_tags`**, then **Release**
 3. **Install** the app on the store you want to audit
 4. **Settings** → copy the **Client ID** and **Client secret**
-5. Run the command above (legacy `--token shpat_...` from pre-2026 custom apps also works)
+
+For `login`, additionally whitelist the callback URL in your app config
+(**Configuration → Allowed redirection URL**):
+
+```
+http://127.0.0.1:3739/callback
+```
+
+(use `login --port <n>` if 3739 is taken, then whitelist that port instead).
+
+Saved credentials live in your user config directory — `%APPDATA%\scripttag-audit\credentials.json`
+(Windows) or `~/.config/scripttag-audit/credentials.json` (macOS/Linux), never
+in the repo, and `scan` re-mints tokens from them automatically when they
+expire. Legacy `--token shpat_...` from pre-2026 custom apps still works.
 
 Only audit stores you own or are authorized to access.
 
@@ -41,8 +64,9 @@ Only audit stores you own or are authorized to access.
 
 | Flag | Description | Default |
 |---|---|---|
-| `--store <domain>` | Shop domain (`my-store.myshopify.com`; the `.myshopify.com` suffix is optional) | required |
-| `--token <token>` | Admin API access token | required |
+| `--store <domain>` | Shop domain (`my-store.myshopify.com`; the `.myshopify.com` suffix is optional). Optional after `login` when exactly one store is saved | required |
+| `--token <token>` | Admin API access token | — |
+| `--client-id` / `--client-secret` | Dev Dashboard app credentials (or `SHOPIFY_CLIENT_ID` / `SHOPIFY_CLIENT_SECRET` env vars) | — |
 | `--format <format>` | `table` \| `json` \| `csv` | `table` |
 | `--api-version <version>` | Admin API version | `2026-07` |
 
@@ -58,6 +82,22 @@ Only audit stores you own or are authorized to access.
       --format table
   # exit code 1 while affected tags remain; 0 once the migration is done
 ```
+
+## Advise — from audit to migration plan
+
+Feed a JSON report back in to get a per-tag migration plan: who has to act
+(vendor vs you), skeleton code for the web pixel / app embed migration, and
+a ready-to-send `scriptTagDelete` mutation for already-dead tags:
+
+```bash
+npx scripttag-audit scan --store my-store --format json > report.json
+npx scripttag-audit advise --report report.json           # human-readable plan
+npx scripttag-audit advise --report report.json --format md   # paste into an issue
+npx scripttag-audit advise --report report.json --email       # vendor inquiry emails
+```
+
+`advise` is offline (reads the report, not the store) and always exits 0 on
+a valid report — use `scan` itself as the CI gate.
 
 ## What the report tells you
 
@@ -82,8 +122,8 @@ audit is unattributed or wrong, PRs are welcome: edit
 
 ## Roadmap
 
-- [ ] `advise` — per-tag scaffolding hints (theme app extension / web pixel skeletons)
-- [ ] `login` — interactive OAuth flow (no manual token copy)
+- [x] `advise` — per-tag migration plan + scaffolding hints + vendor emails
+- [x] `login` / `logout` — interactive OAuth flow, no manual token copying
 - [ ] Multi-store batch mode (see the TagGuard dashboard)
 
 ## License

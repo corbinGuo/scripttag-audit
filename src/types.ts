@@ -1,4 +1,11 @@
-export type TagStatus = 'affected-storefront' | 'dead-order-status' | 'unknown';
+export type TagStatus =
+  | 'affected-storefront'
+  | 'dead-order-status'
+  | 'unknown'
+  /** Hard-coded <script src> in a theme .liquid file (second scan surface, V3). */
+  | 'theme';
+
+export type ScanSurface = 'scriptTag' | 'theme';
 
 export type VendorConfidence = 'high' | 'medium' | 'low';
 
@@ -15,7 +22,7 @@ export interface ScriptTag {
 }
 
 export interface MigrationAdvice {
-  replacement: 'web-pixel' | 'app-embed' | 'cleanup' | 'ask-vendor';
+  replacement: 'web-pixel' | 'app-embed' | 'cleanup' | 'ask-vendor' | 'theme-embed';
   summary: string;
   docUrl: string;
 }
@@ -28,6 +35,10 @@ export interface EnrichedTag extends ScriptTag {
   vendorCategory: string | null;
   status: TagStatus;
   advice: MigrationAdvice;
+  /** Which surface produced this row. Absent in pre-v0.3.0 reports (API tags). */
+  surface?: ScanSurface;
+  /** Theme .liquid file the script was found in (theme rows only). */
+  sourceFile?: string | null;
 }
 
 export interface ScanSummary {
@@ -35,6 +46,8 @@ export interface ScanSummary {
   affected: number;
   dead: number;
   unknown: number;
+  /** Theme-embedded scripts — separate surface, keeps running post-deprecation. */
+  theme: number;
   topVendors: { vendor: string; count: number }[];
 }
 

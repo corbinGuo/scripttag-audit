@@ -13,6 +13,7 @@ const dim = (s: string) => ansi('2', s);
 const red = (s: string) => ansi('31', s);
 const green = (s: string) => ansi('32', s);
 const yellow = (s: string) => ansi('33', s);
+const cyan = (s: string) => ansi('36', s);
 const gray = (s: string) => ansi('90', s);
 
 /* ---------- terminal table ---------- */
@@ -21,11 +22,13 @@ const STATUS_LABEL: Record<EnrichedTag['status'], string> = {
   'affected-storefront': 'AFFECTED',
   'dead-order-status': 'DEAD (cleanup)',
   unknown: 'UNKNOWN',
+  theme: 'THEME (embed)',
 };
 
 function statusColor(status: EnrichedTag['status'], s: string): string {
   if (status === 'affected-storefront') return red(s);
   if (status === 'dead-order-status') return yellow(s);
+  if (status === 'theme') return cyan(s);
   return gray(s);
 }
 
@@ -53,6 +56,7 @@ export function renderTable(report: ScanReport): string {
       red(`Affected: ${summary.affected}`),
       yellow(`Dead: ${summary.dead}`),
       gray(`Unknown: ${summary.unknown}`),
+      cyan(`Theme: ${summary.theme}`),
     ].join('   ')
   );
   if (summary.affected > 0) {
@@ -60,6 +64,14 @@ export function renderTable(report: ScanReport): string {
       dim(
         `Storefront script tags stop running ${DEADLINE_STOREFRONT}; ` +
           `new installs break after ${DEADLINE_API_BREAK}.`
+      )
+    );
+  }
+  if (summary.theme > 0) {
+    lines.push(
+      dim(
+        'Theme scripts are hard-coded in theme .liquid files — they are NOT ' +
+          'affected by the deprecation (only API-injected tags stop running).'
       )
     );
   }
@@ -77,8 +89,11 @@ export function renderTable(report: ScanReport): string {
     return lines.join('\n');
   }
 
-  const headers = ['STATUS', 'SCOPE', 'HOST / VENDOR', 'CREATED', 'SRC'];
-  const caps = [16, 14, 36, 10, 48];
+  const hasTheme = summary.theme > 0;
+  const headers = hasTheme
+    ? ['STATUS', 'SCOPE', 'HOST / VENDOR', 'CREATED', 'FOUND IN', 'SRC']
+    : ['STATUS', 'SCOPE', 'HOST / VENDOR', 'CREATED', 'SRC'];
+  const caps = hasTheme ? [16, 14, 36, 10, 22, 48] : [16, 14, 36, 10, 48];
 
   const rows = report.tags.map((t) => ({
     tag: t,
@@ -90,7 +105,8 @@ export function renderTable(report: ScanReport): string {
         caps[2]
       ),
       t.createdAt.slice(0, 10),
-      truncate(t.src, caps[4]),
+      ...(hasTheme ? [truncate(t.sourceFile ?? '—', caps[4])] : []),
+      truncate(t.src, caps[caps.length - 1]),
     ],
   }));
 
@@ -149,6 +165,8 @@ const CSV_COLUMNS: { key: keyof EnrichedTag; header: string }[] = [
   { key: 'vendorConfidence', header: 'vendor_confidence' },
   { key: 'displayScope', header: 'display_scope' },
   { key: 'status', header: 'status' },
+  { key: 'surface', header: 'surface' },
+  { key: 'sourceFile', header: 'source_file' },
   { key: 'createdAt', header: 'created_at' },
   { key: 'updatedAt', header: 'updated_at' },
 ];

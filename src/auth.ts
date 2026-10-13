@@ -38,7 +38,7 @@ export async function mintToken(
   if (!res.ok) {
     throw new ShopifyError(
       `Token request failed (HTTP ${res.status}).`,
-      'Check client_id / client_secret (Dev Dashboard → your app → Settings) and that the app is installed on this store with the read_script_tags scope.'
+      'Check client_id / client_secret (Dev Dashboard → your app → Settings) and that the app is installed on this store with the read_script_tags + read_themes scopes.'
     );
   }
   const body = (await res.json()) as { access_token?: string };

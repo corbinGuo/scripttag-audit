@@ -63,12 +63,18 @@ export interface AdviceDoc {
   store: string;
   apiVersion: string;
   scannedAt: string;
-  counts: { total: number; affected: number; dead: number; unknown: number };
+  counts: { total: number; affected: number; dead: number; unknown: number; theme: number };
   groups: AdviceGroup[];
 }
 
 function stepsFor(replacement: MigrationAdvice['replacement']): string[] {
   switch (replacement) {
+    case 'theme-embed':
+      return [
+        'Not affected by the deprecation — theme-embedded scripts keep running.',
+        'You: ask the vendor whether an app embed block exists — embeds update automatically instead of requiring a theme edit every release.',
+        'You: to remove it later, edit the theme liquid file directly (or ask your agency).',
+      ];
     case 'web-pixel':
       return [
         'Vendor: rebuild the tracking in a web pixel extension (sandboxed, consent-aware).',
@@ -100,6 +106,7 @@ function docUrlFor(replacement: MigrationAdvice['replacement']): string {
     case 'web-pixel':
       return DOC_WEB_PIXEL;
     case 'app-embed':
+    case 'theme-embed':
       return DOC_THEME_APP_EXT;
     case 'cleanup':
       return DOC_SCRIPT_TAG_DELETE;
@@ -161,6 +168,7 @@ export function buildAdviceDoc(report: ScanReport): AdviceDoc {
     affected: report.summary.affected,
     dead: report.summary.dead,
     unknown: report.summary.unknown,
+    theme: report.summary.theme ?? 0,
   };
 
   return {
@@ -179,6 +187,7 @@ const REPLACEMENT_LABEL: Record<MigrationAdvice['replacement'], string> = {
   'app-embed': 'app embed block (vendor migration + you activate per theme)',
   cleanup: 'cleanup — delete the tag',
   'ask-vendor': 'verify with the vendor first',
+  'theme-embed': 'theme-embedded — keeps running; ask the vendor for an app embed to get auto-updates',
 };
 
 function emailForGroup(group: AdviceGroup, report: ScanReport, unattributed: boolean): string {
@@ -236,11 +245,16 @@ export function renderAdviceText(doc: AdviceDoc): string {
   out.push('');
   out.push(`Migration plan — ${doc.store}  (API ${doc.apiVersion}, scanned ${doc.scannedAt})`);
   out.push(
-    `Affected: ${doc.counts.affected}   Dead: ${doc.counts.dead}   Unknown: ${doc.counts.unknown}   Total: ${doc.counts.total}`
+    `Affected: ${doc.counts.affected}   Dead: ${doc.counts.dead}   Unknown: ${doc.counts.unknown}   Theme: ${doc.counts.theme}   Total: ${doc.counts.total}`
   );
   if (doc.counts.affected > 0) {
     out.push(
       `Storefront tags stop running ${DEADLINE_STOREFRONT}; new installs break after ${DEADLINE_API_BREAK}.`
+    );
+  }
+  if (doc.counts.theme > 0) {
+    out.push(
+      'Theme scripts are hard-coded in theme .liquid files — not affected by the deprecation.'
     );
   }
   out.push('');
@@ -282,11 +296,16 @@ export function renderAdviceMarkdown(doc: AdviceDoc): string {
   out.push(`# Migration plan — ${doc.store}`);
   out.push('');
   out.push(
-    `> API ${doc.apiVersion}, scanned ${doc.scannedAt}. Affected: **${doc.counts.affected}**, dead: ${doc.counts.dead}, unknown: ${doc.counts.unknown}.`
+    `> API ${doc.apiVersion}, scanned ${doc.scannedAt}. Affected: **${doc.counts.affected}**, dead: ${doc.counts.dead}, unknown: ${doc.counts.unknown}, theme: ${doc.counts.theme}.`
   );
   if (doc.counts.affected > 0) {
     out.push(
       `> Storefront tags stop running **${DEADLINE_STOREFRONT}**; new installs break after **${DEADLINE_API_BREAK}**.`
+    );
+  }
+  if (doc.counts.theme > 0) {
+    out.push(
+      '> Theme scripts are hard-coded in theme .liquid files — not affected by the deprecation.'
     );
   }
   out.push('');

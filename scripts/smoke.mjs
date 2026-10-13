@@ -85,6 +85,36 @@ if (json.tags.find((t) => t.id === '1').advice.replacement !== 'web-pixel') {
   failures.push('Hotjar (Session Recording) should map to web-pixel');
 }
 
+// --- theme surface (V3, v0.3.0) ---
+const themeHits = [
+  { id: 'theme:1a2b3c4d', src: 'https://code.jquery.com/jquery-3.7.1.min.js', sourceFile: 'layout/theme.liquid' },
+  { id: 'theme:deadbeef', src: '//cdn.example-widgets.io/chat.js', sourceFile: 'snippets/footer.liquid' },
+];
+const reportV3 = buildReport('demo-store.myshopify.com', '2026-07', tags, themeHits);
+const jsonV3 = JSON.parse(renderJson(reportV3));
+if (jsonV3.summary.theme !== 2) failures.push('theme count expected 2');
+if (jsonV3.summary.affected !== 5) failures.push('affected must exclude theme rows (expected 5)');
+if (jsonV3.summary.total !== 8) failures.push('total expected 8 (6 api + 2 theme)');
+const themeTag = jsonV3.tags.find((t) => t.surface === 'theme' && t.id === 'theme:1a2b3c4d');
+if (!themeTag || themeTag.advice.replacement !== 'theme-embed') failures.push('theme row should carry theme-embed advice');
+if (themeTag.sourceFile !== 'layout/theme.liquid') failures.push('sourceFile missing on theme row');
+if (themeTag.displayScope !== 'THEME') failures.push('theme row displayScope should be THEME');
+const protoTheme = jsonV3.tags.find((t) => t.id === 'theme:deadbeef');
+if (protoTheme.src !== 'https://cdn.example-widgets.io/chat.js') failures.push('protocol-relative theme src should be normalized');
+const tableV3 = renderTable(reportV3);
+if (!tableV3.includes('THEME (embed)') || !tableV3.includes('FOUND IN') || !tableV3.includes('layout/theme.liquid')) {
+  failures.push('table render missing theme markers');
+}
+if (!tableV3.includes(`Theme: 2`)) failures.push('table summary missing Theme count');
+const adviceDocV3 = buildAdviceDoc(reportV3);
+if (adviceDocV3.counts.theme !== 2) failures.push('advice counts.theme expected 2');
+if (!renderAdviceText(adviceDocV3).includes('Theme: 2')) failures.push('advice text missing Theme count');
+if (!renderAdviceMarkdown(adviceDocV3).includes('theme: 2')) failures.push('advice md missing theme count');
+const themeAdvice = adviceDocV3.groups.find((g) => g.items.some((i) => i.tag.surface === 'theme'));
+if (!themeAdvice || themeAdvice.items.some((i) => i.steps[0] !== 'Not affected by the deprecation — theme-embedded scripts keep running.')) {
+  failures.push('theme-embed steps missing');
+}
+
 // --- vendor mapping ---
 const count = vendorCount();
 console.log('--- vendor mapping:', count, 'entries ---');
@@ -120,6 +150,7 @@ console.log(adviceText.split('\n').slice(0, 4).join('\n'));
 
 if (adviceDoc.store !== fixture.store) failures.push('advice doc store mismatch');
 if (adviceDoc.counts.total !== fixture.summary.total) failures.push('advice counts.total mismatch');
+if (adviceDoc.counts.theme !== (fixture.summary.theme ?? 0)) failures.push('advice counts.theme mismatch on legacy fixture');
 if (!adviceText.includes('Migration plan')) failures.push('advice text missing header');
 if (!adviceMd.includes('# Migration plan')) failures.push('advice markdown missing header');
 if (emails && !emails.includes('Subject:')) failures.push('emails missing Subject line');

@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { ShopifyError } from './shopify-client.js';
 
 export const DEFAULT_CALLBACK_PORT = 3739;
-export const REQUIRED_SCOPE = 'read_script_tags';
+export const REQUIRED_SCOPE = 'read_script_tags,read_themes';
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000;
 
 export interface OAuthResult {

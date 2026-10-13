@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { fetchAllScriptTags, ShopifyError } from '../shopify-client.js';
+import { fetchAllScanRows, ShopifyError } from '../shopify-client.js';
 import { resolveAccessToken } from '../auth.js';
 import { buildReport } from '../report-builder.js';
 import { renderTable, renderJson, renderCsv } from '../report.js';
@@ -11,18 +11,22 @@ How to get credentials (2026 Dev Dashboard flow):
   Recommended: run \`scripttag-audit login\` once (OAuth, no flag copying).
   Manual alternative:
   1. dev.shopify.com -> Apps -> Create app
-  2. Create a version with Admin API scope: read_script_tags
+  2. Create a version with Admin API scopes: read_script_tags + read_themes
+     (read_themes powers the theme-file scan; profiles created before
+     v0.3.0 must re-run \`scripttag-audit login\` to request it)
   3. Release the version, then Install -> your store
   4. Settings -> copy Client ID and Client secret
   5. Run with --client-id + --client-secret (a fresh ~24h token is minted per run)
-  Legacy --token (shpat_...) from pre-2026 custom apps still works.
+  Legacy --token (shpat_...) from pre-2026 custom apps still works if it has both scopes.
   SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET env vars are also honored.
 `.trim();
 
 export function registerScanCommand(program: Command): void {
   program
     .command('scan')
-    .description('Audit a Shopify store for script tags affected by the 2027 deprecation')
+    .description(
+      'Audit a Shopify store for script tags and theme-embedded scripts ahead of the 2027 deprecation'
+    )
     .option('--store <domain>', 'Shop domain, e.g. my-store.myshopify.com (optional after `login` when exactly one store is saved)')
     .option('--token <token>', 'Legacy static Admin API token (shpat_..., pre-2026 custom apps)')
     .option('--client-id <id>', 'Dev Dashboard app Client ID (recommended)')
@@ -69,8 +73,8 @@ export function registerScanCommand(program: Command): void {
         }
 
         const token = await resolveAccessToken(store, opts);
-        const tags = await fetchAllScriptTags(store, token, opts.apiVersion);
-        const report = buildReport(store, opts.apiVersion, tags);
+        const { apiTags, themeHits } = await fetchAllScanRows(store, token, opts.apiVersion);
+        const report = buildReport(store, opts.apiVersion, apiTags, themeHits);
 
       if (opts.format === 'json') {
         console.log(renderJson(report));

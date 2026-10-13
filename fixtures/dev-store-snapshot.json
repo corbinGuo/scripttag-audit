@@ -1,46 +1,70 @@
 {
   "store": "tagguard-dev.myshopify.com",
   "apiVersion": "2026-07",
-  "scannedAt": "2026-09-14T17:26:11.608Z",
+  "scannedAt": "2026-10-10T02:38:02.934Z",
   "tags": [
     {
-      "id": "gid://shopify/ScriptTag/235043684388",
+      "id": "gid://shopify/ScriptTag/235052433444",
       "src": "https://cdn.hotjar.com/hotjar-example.js",
       "displayScope": "ONLINE_STORE",
-      "createdAt": "2026-09-14T17:20:46Z",
-      "updatedAt": "2026-09-14T17:20:46Z",
+      "createdAt": "2026-09-17T18:18:04Z",
+      "updatedAt": "2026-09-17T18:18:04Z",
       "host": "cdn.hotjar.com",
       "vendor": "Hotjar",
       "vendorConfidence": "high",
+      "vendorCategory": "Session Recording",
       "status": "affected-storefront",
       "advice": {
         "replacement": "web-pixel",
         "summary": "Analytics-style script. Migrate to a web pixel extension (no merchant action required). New installs break after 2026-10-01; all storefront tags stop running 2027-03-01.",
         "docUrl": "https://shopify.dev/docs/apps/build/online-store"
-      }
+      },
+      "surface": "scriptTag"
     },
     {
-      "id": "gid://shopify/ScriptTag/235043717156",
+      "id": "gid://shopify/ScriptTag/235052466212",
       "src": "https://widget.intercom.io/intercom-example.js",
       "displayScope": "ONLINE_STORE",
-      "createdAt": "2026-09-14T17:20:46Z",
-      "updatedAt": "2026-09-14T17:20:46Z",
+      "createdAt": "2026-09-17T18:18:05Z",
+      "updatedAt": "2026-09-17T18:18:05Z",
       "host": "widget.intercom.io",
       "vendor": "Intercom",
       "vendorConfidence": "high",
+      "vendorCategory": "Chat",
       "status": "affected-storefront",
       "advice": {
         "replacement": "app-embed",
         "summary": "Visible-feature script. Migrate to an app embed block inside a theme app extension (merchants must activate it in the theme editor, per theme). New installs break after 2026-10-01; all storefront tags stop running 2027-03-01.",
         "docUrl": "https://shopify.dev/docs/apps/build/online-store"
-      }
+      },
+      "surface": "scriptTag"
+    },
+    {
+      "id": "theme:57bf1e5a",
+      "src": "https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js",
+      "createdAt": "2026-10-10T02:38:02.934Z",
+      "updatedAt": "2026-10-10T02:38:02.934Z",
+      "displayScope": "THEME",
+      "host": "cdn.jsdelivr.net",
+      "vendor": "Unknown",
+      "vendorConfidence": "low",
+      "vendorCategory": "Unknown CDN",
+      "status": "theme",
+      "advice": {
+        "replacement": "theme-embed",
+        "summary": "Hard-coded in a theme liquid file. NOT affected by the deprecation — only API-injected script tags stop running — but every update needs a manual theme edit. Ask the vendor for an app embed block so updates become automatic.",
+        "docUrl": "https://shopify.dev/docs/apps/build/online-store/theme-app-extensions"
+      },
+      "surface": "theme",
+      "sourceFile": "layout/theme.liquid"
     }
   ],
   "summary": {
-    "total": 2,
+    "total": 3,
     "affected": 2,
     "dead": 0,
     "unknown": 0,
+    "theme": 1,
     "topVendors": [
       {
         "vendor": "Hotjar",

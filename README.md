@@ -13,6 +13,16 @@
 you what to migrate it to (web pixel vs app embed). Exit code `1` when
 affected tags remain — so it doubles as a **CI gate** for your migration.
 
+**v0.3.0 — theme-file scan.** `scriptTags` queries only return tags created
+by the calling app, and since 2026-10-01 `scriptTagCreate` fails on every API
+version — so scripts added by merchants/agencies live in theme liquid files
+that the ScriptTag API never sees. The scan therefore also reads the active
+theme's `.liquid` files and reports hard-coded third-party `<script src>` as
+`THEME` rows (with the file they were found in). Theme scripts are **not**
+affected by the deprecation — only API-injected tags stop running. This needs
+the **`read_themes`** scope in addition to `read_script_tags`; profiles
+created before v0.3.0 should re-run `login`.
+
 ## Quick start
 
 One-time OAuth login (no flag copying afterwards):
@@ -40,7 +50,7 @@ Since Jan 2026, Shopify apps no longer have static `shpat_` tokens. The CLI
 mints a fresh ~24h token per run via the client-credentials grant:
 
 1. [dev.shopify.com](https://dev.shopify.com) → **Apps** → **Create app**
-2. Create a version with the Admin API scope **`read_script_tags`**, then **Release**
+2. Create a version with the Admin API scopes **`read_script_tags`** + **`read_themes`**, then **Release**
 3. **Install** the app on the store you want to audit
 4. **Settings** → copy the **Client ID** and **Client secret**
 
@@ -106,11 +116,13 @@ a valid report — use `scan` itself as the CI gate.
 | `AFFECTED` | Storefront script tag. Stops running **2027-03-01**; new installs already break after **2026-10-01**. |
 | `DEAD (cleanup)` | Order-status script tag from an earlier deprecation. Non-functional; safe to delete. |
 | `UNKNOWN` | Unrecognized display scope — verify with the vendor. |
+| `THEME (embed)` | Hard-coded `<script src>` in a theme `.liquid` file (with the file it was found in). **Not** affected by the deprecation — but updates require theme edits; ask the vendor for an app embed. |
 
 Migration hints follow Shopify's guidance:
 
-- **Analytics / tracking style** → [web pixel](https://shopify.dev/docs/apps/build/online-store) (no merchant action needed)
-- **Visible features (chat, popups, reviews...)** → app embed block in a theme app extension (merchants must activate it per theme)
+- **Analytics / tracking style** → [web pixel](https://shopify.dev/docs/apps/build/marketing-analytics/build-web-pixel) (no merchant action needed)
+- **Visible features (chat, popups, reviews...)** → app embed block in a [theme app extension](https://shopify.dev/docs/apps/build/online-store/theme-app-extensions) (merchants must activate it per theme)
+- **Theme-embedded scripts** → keeps running; optionally ask the vendor for an app embed so updates stop requiring theme edits
 - `scriptTags` queries and `scriptTagDelete` keep working after the deadlines — auditing and cleanup are the officially supported path.
 
 ## Contributing vendor mappings
@@ -124,6 +136,7 @@ audit is unattributed or wrong, PRs are welcome: edit
 
 - [x] `advise` — per-tag migration plan + scaffolding hints + vendor emails
 - [x] `login` / `logout` — interactive OAuth flow, no manual token copying
+- [x] Theme-file scan (v0.3.0) — hard-coded `<script src>` in `.liquid`, the surface `scriptTags` can't see
 - [ ] Multi-store batch mode (see the TagGuard dashboard)
 
 ## License

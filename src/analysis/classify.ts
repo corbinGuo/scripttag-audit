@@ -50,6 +50,17 @@ export function buildAdvice(
   status: TagStatus,
   vendorCategory: string | null
 ): MigrationAdvice {
+  if (status === 'theme') {
+    return {
+      replacement: 'theme-embed',
+      summary:
+        'Hard-coded in a theme liquid file. NOT affected by the deprecation — ' +
+        'only API-injected script tags stop running — but every update needs a ' +
+        'manual theme edit. Ask the vendor for an app embed block so updates ' +
+        'become automatic.',
+      docUrl: 'https://shopify.dev/docs/apps/build/online-store/theme-app-extensions',
+    };
+  }
   if (status === 'dead-order-status') {
     return {
       replacement: 'cleanup',

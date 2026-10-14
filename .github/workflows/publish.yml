@@ -25,8 +25,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      # Deliberately no registry-url / NODE_AUTH_TOKEN here: those shadow
-      # the OIDC flow and cause ENEEDAUTH.
+          registry-url: 'https://registry.npmjs.org'
+      # Trusted publishing (OIDC) needs npm >= 11.5.1; runners can bundle
+      # older CLIs, so pin latest explicitly. No NODE_AUTH_TOKEN: npm
+      # 11.5.1+ falls back to the OIDC flow when no auth token is present.
+      - run: npm install -g npm@latest
       - run: npm ci
       # --provenance: trusted publishing handles AUTH via OIDC; the flag is
       # what generates the signed provenance attestation (npm view ... dist.attestations)

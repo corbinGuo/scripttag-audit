@@ -27,9 +27,10 @@ jobs:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
       # Trusted publishing (OIDC) needs npm >= 11.5.1; runners can bundle
-      # older CLIs, so pin latest explicitly. No NODE_AUTH_TOKEN: npm
+      # older CLIs, so pin the 11.x line explicitly (npm@12 changes install
+      # behavior; no need to chase majors here). No NODE_AUTH_TOKEN: npm
       # 11.5.1+ falls back to the OIDC flow when no auth token is present.
-      - run: npm install -g npm@latest
+      - run: npm install -g npm@11
       - run: npm ci
       # --provenance: trusted publishing handles AUTH via OIDC; the flag is
       # what generates the signed provenance attestation (npm view ... dist.attestations)

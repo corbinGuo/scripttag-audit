@@ -25,11 +25,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          registry-url: 'https://registry.npmjs.org'
       # Trusted publishing (OIDC) needs npm >= 11.5.1; runners can bundle
       # older CLIs, so pin the 11.x line explicitly (npm@12 changes install
-      # behavior; no need to chase majors here). No NODE_AUTH_TOKEN: npm
-      # 11.5.1+ falls back to the OIDC flow when no auth token is present.
+      # behavior; no need to chase majors here).
+      # No registry-url here on purpose: setup-node would write a placeholder
+      # `_authToken=${NODE_AUTH_TOKEN}` into .npmrc, which makes npm prefer
+      # (broken) token auth over the OIDC fallback — the registry masks that
+      # as 404 on PUT. npm defaults to registry.npmjs.org; package.json
+      # publishConfig pins it too.
       - run: npm install -g npm@11
       - run: npm ci
       # --provenance: trusted publishing handles AUTH via OIDC; the flag is

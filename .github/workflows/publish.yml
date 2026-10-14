@@ -38,6 +38,15 @@ jobs:
       # package.json publishConfig pins it too.
       - run: npm install -g npm@12
       - run: npm ci
+      # TEMP DEBUG: decode the GitHub OIDC token's claims so they can be
+      # diffed field-by-field against npm's trusted publisher config.
+      # REMOVE once publishing works.
+      - run:
+          |
+            RESP=$(curl -s -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org")
+            TOKEN=$(echo "$RESP" | python3 -c "import sys,json;print(json.load(sys.stdin)['value'])")
+            echo "$TOKEN" | cut -d. -f2 | python3 -c "import sys,base64,json;p=sys.stdin.read().strip();p+='='*(-len(p)%4);print(json.dumps(json.loads(base64.urlsafe_b64decode(p)),indent=1))"
       # --provenance: trusted publishing handles AUTH via OIDC; the flag is
       # what generates the signed provenance attestation (npm view ... dist.attestations)
       # --loglevel=verbose surfaces `oidc` diagnostics (token exchange is

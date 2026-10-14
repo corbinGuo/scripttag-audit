@@ -25,16 +25,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      # Trusted publishing (OIDC) needs npm >= 11.5.1; runners can bundle
-      # older CLIs, so pin the 11.x line explicitly (npm@12 changes install
-      # behavior; no need to chase majors here).
-      # No registry-url here on purpose: setup-node would write a placeholder
-      # `_authToken=${NODE_AUTH_TOKEN}` into .npmrc, which makes npm prefer
-      # (broken) token auth over the OIDC fallback — the registry masks that
-      # as 404 on PUT. npm defaults to registry.npmjs.org; package.json
-      # publishConfig pins it too.
-      - run: npm install -g npm@11
+      # The OIDC token exchange (/-/npm/v1/oidc/token/exchange/package/…)
+      # only exists in npm >= 12 — npm 11.x has no exchange code at all and
+      # dies at publish with ENEEDAUTH (or a masked 404 when a placeholder
+      # token is present). Runner npm is 11.x, so pin 12 explicitly. npm 12's
+      # allow-remote=none gate is safe here: the lockfile is normalized to
+      # registry.npmjs.org URLs (commit ac3657e).
+      # No registry-url on purpose: setup-node would write a placeholder
+      # `_authToken=${NODE_AUTH_TOKEN}` into .npmrc; a failed OIDC exchange
+      # would then fall back to that garbage token and the registry masks
+      # the real error as 404 on PUT. npm defaults to registry.npmjs.org;
+      # package.json publishConfig pins it too.
+      - run: npm install -g npm@12
       - run: npm ci
       # --provenance: trusted publishing handles AUTH via OIDC; the flag is
       # what generates the signed provenance attestation (npm view ... dist.attestations)
-      - run: npm publish --provenance
+      # --loglevel=verbose surfaces `oidc` diagnostics (token exchange is
+      # silent-by-design on failure) in case npm rejects the exchange.
+      - run: npm publish --provenance --loglevel=verbose

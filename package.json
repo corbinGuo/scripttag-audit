@@ -9,8 +9,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/corbinGuo/scripttag-audit.git",
-    "directory": "cli"
+    "url": "git+https://github.com/corbinGuo/scripttag-audit.git"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"

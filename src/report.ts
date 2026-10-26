@@ -23,12 +23,13 @@ const STATUS_LABEL: Record<EnrichedTag['status'], string> = {
   'dead-order-status': 'DEAD (cleanup)',
   unknown: 'UNKNOWN',
   theme: 'THEME (embed)',
+  appEmbed: 'APP EMBED (kept)',
 };
 
 function statusColor(status: EnrichedTag['status'], s: string): string {
   if (status === 'affected-storefront') return red(s);
   if (status === 'dead-order-status') return yellow(s);
-  if (status === 'theme') return cyan(s);
+  if (status === 'theme' || status === 'appEmbed') return cyan(s);
   return gray(s);
 }
 
@@ -57,6 +58,7 @@ export function renderTable(report: ScanReport): string {
       yellow(`Dead: ${summary.dead}`),
       gray(`Unknown: ${summary.unknown}`),
       cyan(`Theme: ${summary.theme}`),
+      cyan(`Storefront: ${summary.storefront}`),
     ].join('   ')
   );
   if (summary.affected > 0) {
@@ -64,6 +66,14 @@ export function renderTable(report: ScanReport): string {
       dim(
         `Storefront script tags stop running ${DEADLINE_STOREFRONT}; ` +
           `new installs break after ${DEADLINE_API_BREAK}.`
+      )
+    );
+  }
+  if (summary.storefront > 0) {
+    lines.push(
+      dim(
+        'Storefront rows are read from the live HTML (this sees tags injected by ' +
+          'other apps). App embed assets are marked APP EMBED and keep running.'
       )
     );
   }
@@ -75,11 +85,41 @@ export function renderTable(report: ScanReport): string {
       )
     );
   }
+  if (report.notes?.length) {
+    for (const note of report.notes) lines.push(yellow(`note: ${note}`));
+  }
   if (summary.topVendors.length > 0) {
     lines.push(
       'Suspected vendors: ' +
         summary.topVendors.map((v) => `${v.vendor} (${v.count})`).join(', ')
     );
+  }
+  if (report.appEmbeds?.length) {
+    const off = report.appEmbeds.filter((embed) => embed.disabled).length;
+    lines.push(
+      bold(`App embeds: ${report.appEmbeds.length}`) +
+        ` (${off > 0 ? yellow(`${off} OFF`) : green('all ON')})`
+    );
+    for (const embed of report.appEmbeds) {
+      lines.push(
+        `  ${embed.disabled ? yellow('OFF') : green('ON ')}  ${embed.handle}  ${dim(embed.type)}`
+      );
+    }
+    if (off > 0) {
+      lines.push(
+        yellow(
+          'Turn OFF app embeds on in Online store → Themes → Customize → App embeds.'
+        )
+      );
+    }
+    if (report.appEmbeds.some((embed) => !embed.disabled)) {
+      lines.push(
+        dim(
+          'A storefront script from a vendor whose app embed is ON may be served ' +
+            'by that embed — verify with the vendor before treating it as affected.'
+        )
+      );
+    }
   }
   lines.push('');
 
@@ -119,13 +159,9 @@ export function renderTable(report: ScanReport): string {
 
   for (const { tag, cells } of rows) {
     lines.push(
-      [
-        statusColor(tag.status, pad(cells[0], widths[0])),
-        pad(cells[1], widths[1]),
-        pad(cells[2], widths[2]),
-        pad(cells[3], widths[3]),
-        pad(cells[4], widths[4]),
-      ].join('  ')
+      cells
+        .map((cell, i) => (i === 0 ? statusColor(tag.status, pad(cell, widths[i])) : pad(cell, widths[i])))
+        .join('  ')
     );
   }
   lines.push('');

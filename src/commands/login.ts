@@ -2,7 +2,12 @@ import { Command } from 'commander';
 import { ShopifyError } from '../shopify-client.js';
 import { DEFAULT_CALLBACK_PORT, REQUIRED_SCOPE, runOAuthFlow } from '../oauth.js';
 import { credentialDisplayPath, saveProfile, getProfile } from '../config.js';
-import { normalizeShopDomain, prompt } from '../util.js';
+import {
+  normalizeShopDomain,
+  prompt,
+  promptSecret,
+  readStdinSecret,
+} from '../util.js';
 
 const LOGIN_HELP = `
 Prerequisites (Dev Dashboard app):
@@ -11,6 +16,12 @@ Prerequisites (Dev Dashboard app):
        http://127.0.0.1:${DEFAULT_CALLBACK_PORT}/callback
      (use --port if you change the port, then whitelist that port instead)
   3. Keep the app version released with Admin API scope: ${REQUIRED_SCOPE}
+
+Client secret input (never echoed):
+  - hidden prompt (default on a TTY; prints * per character)
+  - SHOPIFY_CLIENT_SECRET environment variable
+  - --client-secret-stdin < secret.txt   (pipe/file input)
+  - --client-secret <secret>             (visible in shell history — avoid)
 
 What gets stored (in ${credentialDisplayPath()} — never in the repo):
   client id + secret, and the access token. Subsequent scans for this shop
@@ -24,7 +35,8 @@ export function registerLoginCommand(program: Command): void {
     .description('Authorize a store via OAuth (localhost callback) and save the credentials')
     .option('--store <domain>', 'Shop domain, e.g. my-store.myshopify.com')
     .option('--client-id <id>', 'Dev Dashboard app Client ID')
-    .option('--client-secret <secret>', 'Dev Dashboard app Client secret')
+    .option('--client-secret <secret>', 'Dev Dashboard app Client secret (visible in shell history — prefer env/stdin)')
+    .option('--client-secret-stdin', 'Read the client secret from stdin (pipe/file) instead of prompting')
     .option('--port <number>', 'Local OAuth callback port', String(DEFAULT_CALLBACK_PORT))
     .addHelpText('after', `\n${LOGIN_HELP}`)
     .action(
@@ -32,6 +44,7 @@ export function registerLoginCommand(program: Command): void {
         store?: string;
         clientId?: string;
         clientSecret?: string;
+        clientSecretStdin?: boolean;
         port: string;
       }) => {
         const port = Number(opts.port);
@@ -45,18 +58,25 @@ export function registerLoginCommand(program: Command): void {
         // An existing profile means the secret is already on disk; only the
         // browser consent is needed again.
         const saved = getProfile(store);
-        const clientId = opts.clientId ?? (await prompt('Client ID', saved?.clientId));
+        const clientId =
+          opts.clientId ??
+          process.env.SHOPIFY_CLIENT_ID ??
+          (await prompt('Client ID', saved?.clientId));
         if (!clientId) {
           throw new ShopifyError(
             'Client ID is required.',
             'Pass --client-id or set SHOPIFY_CLIENT_ID. Copy it from Dev Dashboard -> your app -> Settings.'
           );
         }
-        const clientSecret = opts.clientSecret ?? (await prompt('Client secret', saved?.clientSecret));
+        const clientSecret = opts.clientSecretStdin
+          ? (await readStdinSecret()) || saved?.clientSecret || ''
+          : opts.clientSecret ??
+            process.env.SHOPIFY_CLIENT_SECRET ??
+            (await promptSecret('Client secret', saved?.clientSecret));
         if (!clientSecret) {
           throw new ShopifyError(
             'Client secret is required.',
-            'Pass --client-secret or set SHOPIFY_CLIENT_SECRET. Input is echoed — run this in a private window if that matters.'
+            'Use the hidden prompt, set SHOPIFY_CLIENT_SECRET, or pipe it with --client-secret-stdin.'
           );
         }
 

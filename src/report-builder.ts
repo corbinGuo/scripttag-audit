@@ -1,11 +1,12 @@
 import type {
+  AppEmbedInfo,
   EnrichedTag,
   ScanReport,
   ScanSummary,
   ScriptTag,
-  VendorConfidence,
 } from './types.js';
 import type { ThemeHit } from './shopify-client.js';
+import type { StorefrontHit } from './storefront.js';
 import { classifyDisplayScope, buildAdvice } from './analysis/classify.js';
 import { extractHost, lookupVendor } from './vendor-map.js';
 
@@ -50,15 +51,35 @@ function enrichThemeHit(hit: ThemeHit, scannedAt: string): EnrichedTag {
   };
 }
 
+function enrichStorefrontHit(hit: StorefrontHit, scannedAt: string): EnrichedTag {
+  return {
+    id: hit.id,
+    src: hit.src,
+    createdAt: scannedAt,
+    updatedAt: scannedAt,
+    displayScope: 'STOREFRONT',
+    host: hit.host,
+    vendor: hit.vendor,
+    vendorConfidence: hit.vendorConfidence,
+    vendorCategory: hit.vendorCategory,
+    status: hit.status,
+    advice: buildAdvice(hit.status, hit.vendorCategory),
+    surface: 'storefront',
+    sourceFile: null,
+  };
+}
+
 export function summarize(tags: EnrichedTag[]): ScanSummary {
-  const apiTags = tags.filter((t) => t.status !== 'theme');
-  const affected = apiTags.filter((t) => t.status === 'affected-storefront').length;
+  const apiTags = tags.filter((t) => (t.surface ?? 'scriptTag') === 'scriptTag');
+  const storefrontTags = tags.filter((t) => t.surface === 'storefront');
+  const theme = tags.filter((t) => t.surface === 'theme').length;
+  const affected = tags.filter((t) => t.status === 'affected-storefront').length;
   const dead = apiTags.filter((t) => t.status === 'dead-order-status').length;
   const unknown = apiTags.filter((t) => t.status === 'unknown').length;
-  const theme = tags.length - apiTags.length;
+  const appEmbedAssets = storefrontTags.filter((t) => t.status === 'appEmbed').length;
 
   const vendorCounts = new Map<string, number>();
-  for (const t of apiTags) {
+  for (const t of tags) {
     if (t.vendor && t.status === 'affected-storefront') {
       vendorCounts.set(t.vendor, (vendorCounts.get(t.vendor) ?? 0) + 1);
     }
@@ -68,19 +89,32 @@ export function summarize(tags: EnrichedTag[]): ScanSummary {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  return { total: tags.length, affected, dead, unknown, theme, topVendors };
+  return {
+    total: tags.length,
+    affected,
+    dead,
+    unknown,
+    theme,
+    storefront: storefrontTags.length,
+    appEmbedAssets,
+    topVendors,
+  };
 }
 
 export function buildReport(
   store: string,
   apiVersion: string,
   tags: ScriptTag[],
-  themeHits: ThemeHit[] = []
+  themeHits: ThemeHit[] = [],
+  storefrontHits: StorefrontHit[] = [],
+  notes: string[] = [],
+  appEmbeds: AppEmbedInfo[] = []
 ): ScanReport {
   const scannedAt = new Date().toISOString();
   const enriched = [
     ...tags.map(enrich),
     ...themeHits.map((hit) => enrichThemeHit(hit, scannedAt)),
+    ...storefrontHits.map((hit) => enrichStorefrontHit(hit, scannedAt)),
   ];
   return {
     store,
@@ -88,5 +122,7 @@ export function buildReport(
     scannedAt,
     tags: enriched,
     summary: summarize(enriched),
+    ...(appEmbeds.length ? { appEmbeds } : {}),
+    ...(notes.length ? { notes } : {}),
   };
 }

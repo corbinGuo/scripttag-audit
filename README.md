@@ -8,10 +8,39 @@
 >
 > Source: [official changelog](https://shopify.dev/changelog/online-store-script-tags-deprecation)
 
-`scripttag-audit` lists every script tag on a store, classifies each one
-(affected / already dead / unknown), guesses the vendor behind it, and tells
-you what to migrate it to (web pixel vs app embed). Exit code `1` when
-affected tags remain — so it doubles as a **CI gate** for your migration.
+> **Prefer a UI?** TagGuard is also a free Shopify app — install it from the
+> [Shopify App Store](https://apps.shopify.com/tagguard) and scan from the admin.
+
+`scripttag-audit` audits both surfaces that matter at the deprecation: the
+**live storefront HTML** (the only place tags injected by other apps are
+visible) and the **active theme's liquid files** (hard-coded scripts). It
+classifies each script (affected / already dead / unknown / theme-embedded /
+app embed), guesses the vendor, and tells you what to migrate it to (web pixel
+vs app embed). Exit code `1` when affected tags remain — so it doubles as a
+**CI gate** for your migration.
+
+The storefront scan requires **no credentials** — point it at any public
+Shopify store:
+
+```bash
+npx scripttag-audit scan --store my-store.com --storefront-only
+```
+
+That is the key difference from the Admin API: the `scriptTags` query only
+returns tags created by the calling app, so a third-party auditor cannot see
+other apps' tags through the API. The rendered storefront HTML can.
+
+**v0.4.0 — storefront HTML scan.** The `scriptTags` query is scoped to the app
+that created the tag, so a third-party auditor cannot see other apps' tags
+through the API. The CLI now also fetches the public storefront HTML, extracts
+absolute `<script src>` URLs, drops Shopify first-party assets and same-site
+subdomains, and reports the rest as `affected` (likely ScriptTag-injected) or
+`app embed` (theme app extension asset, keeps running). This surface needs no
+credentials: `npx scripttag-audit scan --store my-store.com --storefront-only`.
+With `login`, the report also adds active-theme liquid files, ScriptTag API
+records, and the ON/OFF state of app embeds. `login` now hides the
+client-secret prompt (prints `*`) and accepts it via `SHOPIFY_CLIENT_SECRET`
+or `--client-secret-stdin`, so recorded terminals never echo it.
 
 **v0.3.0 — theme-file scan.** `scriptTags` queries only return tags created
 by the calling app, and since 2026-10-01 `scriptTagCreate` fails on every API
@@ -24,6 +53,14 @@ the **`read_themes`** scope in addition to `read_script_tags`; profiles
 created before v0.3.0 should re-run `login`.
 
 ## Quick start
+
+### Storefront-only (no credentials)
+
+```bash
+npx scripttag-audit scan --store my-store.com --storefront-only
+```
+
+### Full audit (adds theme files, ScriptTag API records, app embeds)
 
 One-time OAuth login (no flag copying afterwards):
 
@@ -63,10 +100,24 @@ http://127.0.0.1:3739/callback
 
 (use `login --port <n>` if 3739 is taken, then whitelist that port instead).
 
+The client-secret prompt is **hidden** (prints `*`, never echoes the value).
+For CI or recorded terminals, pipe it instead of typing:
+
+```bash
+npx scripttag-audit login --client-secret-stdin < secret.txt
+# or: SHOPIFY_CLIENT_SECRET=... npx scripttag-audit login
+```
+
 Saved credentials live in your user config directory — `%APPDATA%\scripttag-audit\credentials.json`
 (Windows) or `~/.config/scripttag-audit/credentials.json` (macOS/Linux), never
 in the repo, and `scan` re-mints tokens from them automatically when they
 expire. Legacy `--token shpat_...` from pre-2026 custom apps still works.
+
+> **Partial scans are labelled, not silent.** If a client-credentials token
+> cannot read themes (or the storefront is password-protected / bot-protected),
+> the command keeps the surfaces it can read and prints `note:` lines. Use
+> `scripttag-audit login` (OAuth) if you need theme files and app embeds, or
+> re-authorize the store with the `read_themes` scope.
 
 Only audit stores you own or are authorized to access.
 
@@ -77,6 +128,7 @@ Only audit stores you own or are authorized to access.
 | `--store <domain>` | Shop domain (`my-store.myshopify.com`; the `.myshopify.com` suffix is optional). Optional after `login` when exactly one store is saved | required |
 | `--token <token>` | Admin API access token | — |
 | `--client-id` / `--client-secret` | Dev Dashboard app credentials (or `SHOPIFY_CLIENT_ID` / `SHOPIFY_CLIENT_SECRET` env vars) | — |
+| `--storefront-only` | Skip theme/API/app-embed surfaces and scan only the public storefront HTML (no credentials needed) | off |
 | `--format <format>` | `table` \| `json` \| `csv` | `table` |
 | `--api-version <version>` | Admin API version | `2026-07` |
 

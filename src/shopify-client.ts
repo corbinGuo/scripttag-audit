@@ -1,4 +1,5 @@
-import type { ScriptTag } from './types.js';
+import type { AppEmbedInfo, ScriptTag } from './types.js';
+import { parseAppEmbeds } from './storefront.js';
 
 const QUERY = /* GraphQL */ `
   query ScriptTags($cursor: String) {
@@ -231,6 +232,44 @@ export async function fetchThemeScripts(
     cursor = page.pageInfo.endCursor;
   }
   return [...bySrc.values()];
+}
+
+const THEME_SETTINGS_QUERY = /* GraphQL */ `
+  query ThemeSettings($id: ID!) {
+    theme(id: $id) {
+      files(filenames: ["config/settings_data.json"]) {
+        nodes {
+          filename
+          body {
+            __typename
+            ... on OnlineStoreThemeFileBodyText { content }
+          }
+        }
+      }
+    }
+  }
+`;
+
+/** App embed blocks + their per-theme ON/OFF state (requires read_themes). */
+export async function fetchAppEmbeds(
+  shop: string,
+  token: string,
+  apiVersion: string
+): Promise<AppEmbedInfo[]> {
+  const themesData = await gql(shop, token, apiVersion, THEMES_QUERY, {});
+  const themes = (themesData?.themes?.edges ?? []).map(
+    (e: { node: { id: string; role: string } }) => e.node
+  );
+  const active =
+    themes.find((t: { role: string }) => t.role.toLowerCase() === 'main') ?? themes[0];
+  if (!active) return [];
+  const data = await gql(shop, token, apiVersion, THEME_SETTINGS_QUERY, { id: active.id });
+  const node = (data?.theme?.files?.nodes ?? []).find(
+    (n: { filename: string }) => n.filename === 'config/settings_data.json'
+  );
+  const content = node?.body?.content;
+  if (!content) return [];
+  return parseAppEmbeds(content);
 }
 
 /** Both scan surfaces. Either one failing aborts the scan — a partial report

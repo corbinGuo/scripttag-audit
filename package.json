@@ -1,6 +1,6 @@
 {
   "name": "scripttag-audit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Audit Shopify stores for script tags before the March 1, 2027 deprecation. CLI + CI gate.",
   "type": "module",
   "engines": {

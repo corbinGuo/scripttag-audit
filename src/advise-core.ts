@@ -63,7 +63,15 @@ export interface AdviceDoc {
   store: string;
   apiVersion: string;
   scannedAt: string;
-  counts: { total: number; affected: number; dead: number; unknown: number; theme: number };
+  counts: {
+    total: number;
+    affected: number;
+    dead: number;
+    unknown: number;
+    theme: number;
+    storefront: number;
+    appEmbedAssets: number;
+  };
   groups: AdviceGroup[];
 }
 
@@ -154,10 +162,18 @@ export function buildAdviceDoc(report: ScanReport): AdviceDoc {
       groups.set(key, group);
     }
     const replacement = tag.advice.replacement;
+    const steps =
+      tag.status === 'appEmbed'
+        ? [
+            'This script is served by a theme app extension (app embed) — it keeps running after 2027-03-01.',
+            'You: verify the app embed is enabled on the published theme: Online store → Themes → Customize → App embeds.',
+            'No migration needed; re-check after any theme change (app embeds are per-theme).',
+          ]
+        : stepsFor(replacement);
     group.items.push({
       tag,
       replacement,
-      steps: stepsFor(replacement),
+      steps,
       scaffold: scaffoldFor(replacement, tag.id),
       docUrl: docUrlFor(replacement),
     });
@@ -169,6 +185,8 @@ export function buildAdviceDoc(report: ScanReport): AdviceDoc {
     dead: report.summary.dead,
     unknown: report.summary.unknown,
     theme: report.summary.theme ?? 0,
+    storefront: report.summary.storefront ?? 0,
+    appEmbedAssets: report.summary.appEmbedAssets ?? 0,
   };
 
   return {
@@ -245,7 +263,7 @@ export function renderAdviceText(doc: AdviceDoc): string {
   out.push('');
   out.push(`Migration plan — ${doc.store}  (API ${doc.apiVersion}, scanned ${doc.scannedAt})`);
   out.push(
-    `Affected: ${doc.counts.affected}   Dead: ${doc.counts.dead}   Unknown: ${doc.counts.unknown}   Theme: ${doc.counts.theme}   Total: ${doc.counts.total}`
+    `Affected: ${doc.counts.affected}   Dead: ${doc.counts.dead}   Unknown: ${doc.counts.unknown}   Theme: ${doc.counts.theme}   Storefront: ${doc.counts.storefront}   Total: ${doc.counts.total}`
   );
   if (doc.counts.affected > 0) {
     out.push(
@@ -296,7 +314,7 @@ export function renderAdviceMarkdown(doc: AdviceDoc): string {
   out.push(`# Migration plan — ${doc.store}`);
   out.push('');
   out.push(
-    `> API ${doc.apiVersion}, scanned ${doc.scannedAt}. Affected: **${doc.counts.affected}**, dead: ${doc.counts.dead}, unknown: ${doc.counts.unknown}, theme: ${doc.counts.theme}.`
+    `> API ${doc.apiVersion}, scanned ${doc.scannedAt}. Affected: **${doc.counts.affected}**, dead: ${doc.counts.dead}, unknown: ${doc.counts.unknown}, theme: ${doc.counts.theme}, storefront: ${doc.counts.storefront}.`
   );
   if (doc.counts.affected > 0) {
     out.push(

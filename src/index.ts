@@ -19,7 +19,7 @@ program
     'Audit Shopify stores for script tags before the March 1, 2027 deprecation.\n' +
       'Source: https://shopify.dev/changelog/online-store-script-tags-deprecation'
   )
-  .version('0.2.0');
+  .version('0.4.0');
 
 registerScanCommand(program);
 registerLoginCommand(program);

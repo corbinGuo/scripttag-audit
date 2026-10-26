@@ -3,9 +3,11 @@ export type TagStatus =
   | 'dead-order-status'
   | 'unknown'
   /** Hard-coded <script src> in a theme .liquid file (second scan surface, V3). */
-  | 'theme';
+  | 'theme'
+  /** Theme app extension asset seen in the storefront — keeps running. */
+  | 'appEmbed';
 
-export type ScanSurface = 'scriptTag' | 'theme';
+export type ScanSurface = 'scriptTag' | 'storefront' | 'theme';
 
 export type VendorConfidence = 'high' | 'medium' | 'low';
 
@@ -48,7 +50,18 @@ export interface ScanSummary {
   unknown: number;
   /** Theme-embedded scripts — separate surface, keeps running post-deprecation. */
   theme: number;
+  /** Scripts seen in the live storefront HTML (affected + app embed assets). */
+  storefront: number;
+  /** App embed assets inside the storefront count (not affected). */
+  appEmbedAssets: number;
   topVendors: { vendor: string; count: number }[];
+}
+
+export interface AppEmbedInfo {
+  blockId: string;
+  handle: string;
+  type: string;
+  disabled: boolean;
 }
 
 export interface ScanReport {
@@ -57,4 +70,8 @@ export interface ScanReport {
   scannedAt: string;
   tags: EnrichedTag[];
   summary: ScanSummary;
+  /** App embed blocks from config/settings_data.json (requires login). */
+  appEmbeds?: AppEmbedInfo[];
+  /** Partial-result warnings (password page, bot challenge, storefront-only). */
+  notes?: string[];
 }

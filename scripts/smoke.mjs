@@ -4,6 +4,7 @@
 import { buildReport } from '../dist/report-builder.js';
 import { renderTable, renderJson, renderCsv } from '../dist/report.js';
 import { vendorCount, lookupVendor } from '../dist/vendor-map.js';
+import { extractStorefrontSrcs, isSameSite, normalizeSrc, parseAppEmbeds } from '../dist/storefront.js';
 import { verifyCallbackHmac } from '../dist/oauth.js';
 import { buildAdviceDoc, renderAdviceText, renderAdviceMarkdown, renderVendorEmails } from '../dist/advise-core.js';
 import { readFileSync } from 'node:fs';
@@ -114,6 +115,82 @@ const themeAdvice = adviceDocV3.groups.find((g) => g.items.some((i) => i.tag.sur
 if (!themeAdvice || themeAdvice.items.some((i) => i.steps[0] !== 'Not affected by the deprecation — theme-embedded scripts keep running.')) {
   failures.push('theme-embed steps missing');
 }
+
+// --- storefront surface (V4) ---
+const sfHtml = `
+  <script src="https://static.klaviyo.com/onsite/js/k.js"></script>
+  <script src='//cdn.shopify.com/extensions/abc/app.js'></script>
+  <script src="/assets/theme.js"></script>
+  <script src="https://undgb.demo-store.com/x.js"></script>
+`;
+const sfSrcs = extractStorefrontSrcs(sfHtml);
+if (sfSrcs.length !== 4) failures.push('storefront extractor expected 4 srcs');
+if (normalizeSrc('//cdn.shopify.com/extensions/abc/app.js') !== 'https://cdn.shopify.com/extensions/abc/app.js') {
+  failures.push('storefront normalizeSrc failed');
+}
+if (!isSameSite('undgb.demo-store.com', 'www.demo-store.com')) failures.push('same-site subdomain not detected');
+if (isSameSite('static.klaviyo.com', 'www.demo-store.com')) failures.push('third-party host misclassified as same-site');
+const settings = `{
+  /* theme comment */
+  "current": { "blocks": {
+    "1": { "type": "shopify://apps/klaviyo-email-marketing-sms/blocks/onsite/x", "disabled": false },
+    "2": { "type": "shopify://apps/pushowl/blocks/pushowl/y", "disabled": true }
+  } }
+}`;
+const embeds = parseAppEmbeds(settings);
+if (embeds.length !== 2 || embeds[0].handle !== 'klaviyo-email-marketing-sms' || !embeds[1].disabled) {
+  failures.push('parseAppEmbeds failed');
+}
+
+const storefrontHits = [
+  {
+    id: 'storefront:1',
+    src: 'https://static.klaviyo.com/onsite/js/k.js',
+    host: 'static.klaviyo.com',
+    vendor: 'Klaviyo',
+    vendorConfidence: 'high',
+    vendorCategory: 'Email Marketing',
+    status: 'affected-storefront',
+    surface: 'storefront',
+  },
+  {
+    id: 'storefront:2',
+    src: 'https://cdn.shopify.com/extensions/abc/app.js',
+    host: 'cdn.shopify.com',
+    vendor: 'Shopify/Theme App Extension',
+    vendorConfidence: 'high',
+    vendorCategory: 'Platform',
+    status: 'appEmbed',
+    surface: 'storefront',
+  },
+];
+const reportV4 = buildReport(
+  'demo-store.myshopify.com',
+  '2026-07',
+  tags,
+  themeHits,
+  storefrontHits,
+  ['Storefront scan read 2 pages (/).'],
+  [
+    { blockId: '1', handle: 'klaviyo-email-marketing-sms', type: 'shopify://apps/klaviyo-email-marketing-sms/blocks/onsite/x', disabled: false },
+    { blockId: '2', handle: 'pushowl', type: 'shopify://apps/pushowl/blocks/pushowl/y', disabled: true },
+  ]
+);
+const jsonV4 = JSON.parse(renderJson(reportV4));
+if (jsonV4.summary.storefront !== 2) failures.push('storefront count expected 2');
+if (jsonV4.summary.appEmbedAssets !== 1) failures.push('appEmbedAssets expected 1');
+if (jsonV4.summary.affected !== 6) failures.push('V4 affected expected 6 (5 API + 1 storefront)');
+if (jsonV4.summary.total !== 10) failures.push('V4 total expected 10 (6 API + 2 theme + 2 storefront)');
+if (jsonV4.appEmbeds?.length !== 2) failures.push('V4 appEmbeds expected 2');
+const tableV4 = renderTable(reportV4);
+if (!tableV4.includes('Storefront: 2')) failures.push('table missing storefront count');
+if (!tableV4.includes('APP EMBED (kept)')) failures.push('table missing app embed status');
+if (!tableV4.includes('Storefront scan read 2 pages')) failures.push('table missing notes');
+if (!tableV4.includes('App embeds: 2')) failures.push('table missing app embeds section');
+if (!tableV4.includes('1 OFF')) failures.push('table missing OFF app embed count');
+const adviceV4 = buildAdviceDoc(reportV4);
+if (adviceV4.counts.storefront !== 2) failures.push('advice counts.storefront expected 2');
+if (!renderAdviceText(adviceV4).includes('Storefront: 2')) failures.push('advice text missing storefront count');
 
 // --- vendor mapping ---
 const count = vendorCount();

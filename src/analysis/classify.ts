@@ -50,6 +50,16 @@ export function buildAdvice(
   status: TagStatus,
   vendorCategory: string | null
 ): MigrationAdvice {
+  if (status === 'appEmbed') {
+    return {
+      replacement: 'theme-embed',
+      summary:
+        'Served by a theme app extension (app embed). NOT affected by the ' +
+        'deprecation — it keeps running after 2027-03-01. Only check that the ' +
+        'app embed is enabled on the published theme.',
+      docUrl: 'https://shopify.dev/docs/apps/build/online-store/theme-app-extensions',
+    };
+  }
   if (status === 'theme') {
     return {
       replacement: 'theme-embed',
